@@ -212,10 +212,11 @@ do_archive(){
 	# Now refactored for arbitrary input directory. So, set up some
 	# necessary variables
 	IN_DIR="$1"
+	SANE_IN_DIR=${IN_DIR/\/} # strip leading slash
 
 	# get the most recent archive's md5sum for comparison later
-	MOST_RECENT=$(ls -1tr "$TO_DIR"/"$IN_DIR"_*.tar | tail -1)
-	if [ $MOST_RECENT != "$TO_DIR/"$IN_DIR"_$DATE.tar" ]; then
+	MOST_RECENT=$(ls -1tr "$TO_DIR"/"$SANE_IN_DIR"_*.tar | tail -1)
+	if [ $MOST_RECENT != "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar" ]; then
 		MD5_OLD=$(md5sum $MOST_RECENT | cut -f1 -d' ')
 	else
 		# For some reason (testing) we already have today's archive.
@@ -223,28 +224,28 @@ do_archive(){
 		MD5_OLD='NO_COMPARE'
 	fi
 	echo "" >> "$LOG_DIR/$LOG_FILE"
-	echo "Tarring $ETC_DIR to $TO_DIR/"$IN_DIR"_$DATE.tar" \
+	echo "Tarring $ETC_DIR to $TO_DIR/"$SANE_IN_DIR"_$DATE.tar" \
 		>> "$LOG_DIR/$LOG_FILE"
-	nice -n 10 tar pcf "$TO_DIR/"$IN_DIR"_$DATE.tar" "$ETC_DIR" \
+	nice -n 10 tar pcf "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar" "$ETC_DIR" \
 		&> /dev/null 
-	echo "Tarball $TO_DIR/"$IN_DIR"_$DATE.tar created." \
+	echo "Tarball $TO_DIR/"$SANE_IN_DIR"_$DATE.tar created." \
 		>> "$LOG_DIR/$LOG_FILE"
 	if [ $MD5_OLD != 'NO_COMPARE' ]; then
-		MD5_NEW=$(md5sum "$TO_DIR/"$IN_DIR"_$DATE.tar" | cut -f1 -d' ')
+		MD5_NEW=$(md5sum "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar" | cut -f1 -d' ')
 		if [ $MD5_NEW == $MD5_OLD ]; then
 			# replace new one with the old one (since there's no apparent
 			# change.
-			rm "$TO_DIR/"$IN_DIR"_$DATE.tar"
-			mv $MOST_RECENT $TO_DIR/"$IN_DIR"_$DATE.tar
+			rm "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar"
+			mv $MOST_RECENT $TO_DIR/"$SANE_IN_DIR"_$DATE.tar
 		fi
 	fi
 	# remove old tar files (greater than 7 days old), making sure there's 
 	# still some left!
 	NUM_ARCHIVE=$(find "$TO_DIR" -maxdepth 1 -mtime +7 \
-		-iname "${IN_DIR}_????????.tar" | wc -l
+		-iname "${SANE_IN_DIR}_????????.tar" | wc -l
 		)
 	NEW_NUM_ARCHIVE=$(find "$TO_DIR" -maxdepth 1 -mtime -7 \
-		-iname "${IN_DIR}_????????.tar" | wc -l
+		-iname "${SANE_IN_DIR}_????????.tar" | wc -l
 		)
 	if [[ "$NUM_ARCHIVE" -gt 5 && "$NEW_NUM_ARCHIVE" -gt 5 ]]; then
 		echo "" >> "$LOG_DIR/$LOG_FILE"
@@ -252,7 +253,7 @@ do_archive(){
 			>> "$LOG_DIR/$LOG_FILE"
 		echo "" >> "$LOG_DIR/$LOG_FILE"
 		find "$TO_DIR" -maxdepth 1 -mtime +7 \
-			-iname "${IN_DIR}_????????.tar" \
+			-iname "${SANE_IN_DIR}_????????.tar" \
 			-exec rm -f "{}" \+
 	else
 		echo "" >> "$LOG_DIR/$LOG_FILE"
