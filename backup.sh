@@ -323,10 +323,9 @@ for ((DIR=0; DIR<${#CHECK_PERMS[@]}; DIR++)); do
 	fi
 done
 
-# fix ownership on files created (logs, tarballs and, ironically, permissions).
+# fix ownership on files created (logs, and, ironically, permissions).
 chown "$WHO":users \
 	"$LOG_DIR"/"$LOG_FILE" \
-	"$TO_DIR"/{boot,etc}_"$DATE"* \
 	"$PERMS_FILE"*
 
 exit 0
