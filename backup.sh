@@ -334,6 +334,7 @@ chown "$WHO":users \
 # through them.
 chmod 600 "$TO_DIR"/*$DATE*.tar
 chown root:root "$TO_DIR"/*$DATE*.tar
-echo "Fixed permission and ownership of /var archive." >> "$LOG_DIR/$LOG_FILE"
+echo "Fixed permission and ownership of directory archives." \
+	>> "$LOG_DIR/$LOG_FILE"
 
 exit 0
