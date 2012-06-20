@@ -330,4 +330,10 @@ chown "$WHO":users \
 	"$LOG_DIR"/"$LOG_FILE" \
 	"$PERMS_FILE"*
 
+# fix permissions on tarball backups so unprivileged users can't rifle
+# through them.
+chmod 600 "$TO_DIR"/*$DATE*.tar
+chown root:root "$TO_DIR"/*$DATE*.tar
+echo "Fixed permission and ownership of /var archive." >> "$LOG_DIR/$LOG_FILE"
+
 exit 0
