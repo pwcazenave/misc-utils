@@ -139,6 +139,8 @@
 #			* Also refactored the archive code to only require a
 #			single function which can be called multiple times with
 #			a directory as first argument.
+#			* Finally, remove tarballs from the chown so that only
+#			root can read their contents (for security).
 
 PATH=/usr/bin:/bin
 
