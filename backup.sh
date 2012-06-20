@@ -136,6 +136,9 @@
 #			in a unique archive. The cleanup code to remove old 
 #			archives should always leave a minimum of six archives
 #			even if they're ancient.
+#			* Also refactored the archive code to only require a
+#			single function which can be called multiple times with
+#			a directory as first argument.
 
 PATH=/usr/bin:/bin
 
@@ -205,60 +208,14 @@ do_home(){
 		2> /dev/null
 }
 
-do_etc(){
-	# get the most recent archive's md5sum for comparison later
-	MOST_RECENT=$(ls -1tr "$TO_DIR"/etc_*.tar | tail -1)
-	if [ $MOST_RECENT != "$TO_DIR/etc_$DATE.tar" ]; then
-		MD5_OLD=$(md5sum $MOST_RECENT | cut -f1 -d' ')
-	else
-		# For some reason (testing) we already have today's archive.
-		# Let's not do all the md5 summing again.
-		MD5_OLD='NO_COMPARE'
-	fi
-	echo "" >> "$LOG_DIR/$LOG_FILE"
-	echo "Tarring $ETC_DIR to $TO_DIR/etc_$DATE.tar" \
-		>> "$LOG_DIR/$LOG_FILE"
-	nice -n 10 tar pcf "$TO_DIR/etc_$DATE.tar" "$ETC_DIR" \
-		&> /dev/null 
-	echo "Tarball $TO_DIR/etc_$DATE.tar created." \
-		>> "$LOG_DIR/$LOG_FILE"
-	if [ $MD5_OLD != 'NO_COMPARE' ]; then
-		MD5_NEW=$(md5sum "$TO_DIR/etc_$DATE.tar" | cut -f1 -d' ')
-		if [ $MD5_NEW == $MD5_OLD ]; then
-			# replace new one with the old one (since there's no apparent
-			# change.
-			rm "$TO_DIR/etc_$DATE.tar"
-			mv $MOST_RECENT $TO_DIR/etc_$DATE.tar
-		fi
-	fi
-	# remove old tar files (greater than 7 days old), making sure there's 
-	# still some left!
-	NO_ETC=$(find "$TO_DIR" -maxdepth 1 -mtime +7 \
-		-iname "etc_????????.tar" | wc -l
-		)
-	NEW_ETC=$(find "$TO_DIR" -maxdepth 1 -mtime -7 \
-		-iname "etc_????????.tar" | wc -l
-		)
-	if [[ "$NO_ETC" -gt 5 && "$NEW_ETC" -gt 5 ]]; then
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-		echo "Removing backups of /etc from more than a week ago." \
-			>> "$LOG_DIR/$LOG_FILE"
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-		find "$TO_DIR" -maxdepth 1 -mtime +7 \
-			-iname "etc_????????.tar" \
-			-exec rm -f "{}" \+
-	else
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-		echo "Won't remove old /etc backups; too few remaining." \
-			>> "$LOG_DIR/$LOG_FILE"
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-	fi
-}
+do_archive(){
+	# Now refactored for arbitrary input directory. So, set up some
+	# necessary variables
+	IN_DIR="$1"
 
-do_boot(){
 	# get the most recent archive's md5sum for comparison later
-	MOST_RECENT=$(ls -1tr "$TO_DIR"/boot_*.tar | tail -1)
-	if [ $MOST_RECENT != "$TO_DIR/boot_$DATE.tar" ]; then
+	MOST_RECENT=$(ls -1tr "$TO_DIR"/"$IN_DIR"_*.tar | tail -1)
+	if [ $MOST_RECENT != "$TO_DIR/"$IN_DIR"_$DATE.tar" ]; then
 		MD5_OLD=$(md5sum $MOST_RECENT | cut -f1 -d' ')
 	else
 		# For some reason (testing) we already have today's archive.
@@ -266,99 +223,43 @@ do_boot(){
 		MD5_OLD='NO_COMPARE'
 	fi
 	echo "" >> "$LOG_DIR/$LOG_FILE"
-	echo "Tarring $BOOT_DIR to $TO_DIR/boot_$DATE.tar" \
+	echo "Tarring $ETC_DIR to $TO_DIR/"$IN_DIR"_$DATE.tar" \
 		>> "$LOG_DIR/$LOG_FILE"
-	nice -n 10 tar pcf "$TO_DIR/boot_$DATE.tar" "$BOOT_DIR" \
+	nice -n 10 tar pcf "$TO_DIR/"$IN_DIR"_$DATE.tar" "$ETC_DIR" \
 		&> /dev/null 
-	echo "Tarball $TO_DIR/boot_$DATE.tar created." \
+	echo "Tarball $TO_DIR/"$IN_DIR"_$DATE.tar created." \
 		>> "$LOG_DIR/$LOG_FILE"
-	# check whether the current boot archive is identical to the previous
-	# one.
 	if [ $MD5_OLD != 'NO_COMPARE' ]; then
-		MD5_NEW=$(md5sum "$TO_DIR/boot_$DATE.tar" | cut -f1 -d' ')
+		MD5_NEW=$(md5sum "$TO_DIR/"$IN_DIR"_$DATE.tar" | cut -f1 -d' ')
 		if [ $MD5_NEW == $MD5_OLD ]; then
 			# replace new one with the old one (since there's no apparent
 			# change.
-			rm "$TO_DIR/boot_$DATE.tar"
-			mv $MOST_RECENT $TO_DIR/boot_$DATE.tar
+			rm "$TO_DIR/"$IN_DIR"_$DATE.tar"
+			mv $MOST_RECENT $TO_DIR/"$IN_DIR"_$DATE.tar
 		fi
 	fi
 	# remove old tar files (greater than 7 days old), making sure there's 
 	# still some left!
-	NO_BOOT=$(find "$TO_DIR" -maxdepth 1 -mtime +7 \
-		-iname "boot_????????.tar" | wc -l
+	NUM_ARCHIVE=$(find "$TO_DIR" -maxdepth 1 -mtime +7 \
+		-iname "${IN_DIR}_????????.tar" | wc -l
 		)
-	NEW_BOOT=$(find "$TO_DIR" -maxdepth 1 -mtime -7 \
-		-iname "boot_????????.tar" | wc -l
+	NEW_NUM_ARCHIVE=$(find "$TO_DIR" -maxdepth 1 -mtime -7 \
+		-iname "${IN_DIR}_????????.tar" | wc -l
 		)
-	if [[ "$NO_BOOT" -gt 5 && "$NEW_BOOT" -gt 5 ]]; then
+	if [[ "$NUM_ARCHIVE" -gt 5 && "$NEW_NUM_ARCHIVE" -gt 5 ]]; then
 		echo "" >> "$LOG_DIR/$LOG_FILE"
-		echo "Removing backups of /boot from more than a week ago." \
+		echo "Removing backups of $IN_DIR from more than a week ago." \
 			>> "$LOG_DIR/$LOG_FILE"
+		echo "" >> "$LOG_DIR/$LOG_FILE"
 		find "$TO_DIR" -maxdepth 1 -mtime +7 \
-			-iname "boot_????????.tar" \
+			-iname "${IN_DIR}_????????.tar" \
 			-exec rm -f "{}" \+
 	else
 		echo "" >> "$LOG_DIR/$LOG_FILE"
-		echo "Won't remove old /boot backups; too few remaining." \
+		echo "Won't remove old ${IN_DIR} backups; too few remaining." \
 			>> "$LOG_DIR/$LOG_FILE"
 		echo "" >> "$LOG_DIR/$LOG_FILE"
 	fi
-}
-
-do_var(){
-	# get the most recent archive's md5sum for comparison later
-	MOST_RECENT=$(ls -1tr "$TO_DIR"/var_*.tar | tail -1)
-	if [ $MOST_RECENT != "$TO_DIR/var_$DATE.tar" ]; then
-		MD5_OLD=$(md5sum $MOST_RECENT | cut -f1 -d' ')
-	else
-		# For some reason (testing) we already have today's archive.
-		# Let's not do all the md5 summing again.
-		MD5_OLD='NO_COMPARE'
-	fi
-	echo "" >> "$LOG_DIR/$LOG_FILE"
-	echo "Tarring $VAR_DIR to $TO_DIR/var_$DATE.tar" \
-		>> "$LOG_DIR/$LOG_FILE"
-	nice -n 10 tar pcf "$TO_DIR/var_$DATE.tar" "$VAR_DIR" \
-		&> /dev/null 
-	echo "Tarball $TO_DIR/var_$DATE.tar created." \
-		>> "$LOG_DIR/$LOG_FILE"
-	if [ $MD5_OLD != 'NO_COMPARE' ]; then
-		MD5_NEW=$(md5sum "$TO_DIR/var_$DATE.tar" | cut -f1 -d' ')
-		if [ $MD5_NEW == $MD5_OLD ]; then
-			# replace new one with the old one (since there's no apparent
-			# change.
-			rm "$TO_DIR/var_$DATE.tar"
-			mv $MOST_RECENT $TO_DIR/var_$DATE.tar
-		fi
-	fi
-	# remove old tar files (greater than 7 days old), making sure there's 
-	# still some left!
-	NO_VAR=$(find "$TO_DIR" -maxdepth 1 -mtime +7 \
-		-iname "var_????????.tar" | wc -l
-		)
-	NEW_VAR=$(find "$TO_DIR" -maxdepth 1 -mtime -7 \
-		-iname "var_????????.tar" | wc -l
-		)
-	if [[ "$NO_VAR" -gt 5 && "$NEW_VAR" -gt 5 ]]; then
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-		echo "Removing backups of /var from more than a week ago." \
-			>> "$LOG_DIR/$LOG_FILE"
-		find "$TO_DIR" -maxdepth 1 -mtime +7 \
-			-iname "var_????????.tar" \
-			-exec rm -f "{}" \+
-	else
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-		echo "Won't remove old /var backups; too few remaining." \
-			>> "$LOG_DIR/$LOG_FILE"
-		echo "" >> "$LOG_DIR/$LOG_FILE"
-	fi
-	# fix permissions on var backups so unprivileged users can't rifle 
-	# through my logs.
-	chmod 600 "$TO_DIR"/var_$DATE*.tar
-	chown root:root "$TO_DIR"/var_$DATE*.tar && \
-		echo "Fixed permission and ownership of /var archive." \
-			>> "$LOG_DIR/$LOG_FILE"
 }
 
 do_perms(){
@@ -399,13 +300,13 @@ if [ -d "$ROOT_HOME_DIR" ] && [ -d "$TO_DIR" ]; then
 	do_home	$ROOT_HOME_DIR	# backup the root home directory
 fi
 if [ -d "$ETC_DIR" ] && [ -d "$TO_DIR" ]; then
-	do_etc		# backup /etc as a tarball, preserving permissions
+	do_archive /etc		# backup /etc as a tarball, preserving permissions
 fi
 if [ -d "$BOOT_DIR" ] && [ -d "$TO_DIR" ]; then
-	do_boot		# backup /boot as a tarball, preserving permissions
+	do_archive /boot	# backup /boot as a tarball, preserving permissions
 fi
 if [ -d "$VAR_DIR" ] && [ -d "$TO_DIR" ]; then
-	do_var		# backup /var as a tarball, preserving permissions
+	do_archive /var		# backup /var as a tarball, preserving permissions
 fi
 
 for ((DIR=0; DIR<${#CHECK_PERMS[@]}; DIR++)); do
