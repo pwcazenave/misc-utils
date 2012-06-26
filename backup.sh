@@ -226,9 +226,9 @@ do_archive(){
 		MD5_OLD='NO_COMPARE'
 	fi
 	echo "" >> "$LOG_DIR/$LOG_FILE"
-	echo "Tarring $ETC_DIR to $TO_DIR/"$SANE_IN_DIR"_$DATE.tar" \
+	echo "Tarring $IN_DIR to $TO_DIR/"$SANE_IN_DIR"_$DATE.tar" \
 		>> "$LOG_DIR/$LOG_FILE"
-	nice -n 10 tar pcf "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar" "$ETC_DIR" \
+	nice -n 10 tar pcf "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar" "$IN_DIR" \
 		&> /dev/null 
 	echo "Tarball $TO_DIR/"$SANE_IN_DIR"_$DATE.tar created." \
 		>> "$LOG_DIR/$LOG_FILE"
@@ -237,7 +237,6 @@ do_archive(){
 		if [ $MD5_NEW == $MD5_OLD ]; then
 			# replace new one with the old one (since there's no apparent
 			# change.
-			rm "$TO_DIR/"$SANE_IN_DIR"_$DATE.tar"
 			mv $MOST_RECENT $TO_DIR/"$SANE_IN_DIR"_$DATE.tar
 		fi
 	fi
