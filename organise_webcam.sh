@@ -15,10 +15,10 @@ fi
 mv $BASE/78A5DD003664\(003abjn\)_?_${ALTTODAY}*.jpg $BASE/$TODAY || true
 
 # Tidy up any stragglers from yesterday (or any other day).
-for i in $(ls -1 $BASE | grep -v -- - | grep -v $ALTTODAY | awk 'OFS="-" {print substr($0,25,4), substr($0,29,2), substr($0,31,2)}' | sort -u); do 
+for i in $(ls -1 $BASE/ | grep -v -- - | grep -v $ALTTODAY | awk 'OFS="-" {print substr($0,25,4), substr($0,29,2), substr($0,31,2)}' | sort -u); do 
     TODIR=$i
     if [ ! -d $BASE/$TODIR ]; then
         mkdir $BASE/$TODIR
-        mv $BASE/78A5DD003664\(003abjn\)_?_${TODIR//-/}*.jpg $BASE/$TODIR
     fi
+    mv $BASE/78A5DD003664\(003abjn\)_?_${TODIR//-/}*.jpg $BASE/$TODIR
 done
